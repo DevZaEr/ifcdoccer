@@ -234,6 +234,10 @@ new ResizeObserver(() => {
   if (autoFitVideoHeight) applyVideoAspectFit();
   else setViewportHeight(viewport.clientHeight);
 }).observe(sceneArea);
+// Also apply it directly, right now: ResizeObserver's own initial callback is
+// supposed to fire on observe() in every modern engine, but don't rely on that
+// alone — run it explicitly too so the very first paint is already correctly sized.
+applyVideoAspectFit();
 
 function animate() {
   requestAnimationFrame(animate);
