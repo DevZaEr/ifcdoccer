@@ -80,8 +80,11 @@
   #loading p{font-size:13px; color:var(--ink-dim); margin:0;}
   aside{
     width:272px; flex-shrink:0; background:var(--panel); border-left:1px solid var(--line);
-    display:flex; flex-direction:column; min-height:0;
+    display:flex; flex-direction:column; min-height:0; overflow:hidden;
+    transition:width .18s ease, border-color .18s ease;
   }
+  aside.collapsed{ width:0; border-left-color:transparent; }
+  aside > *{ width:272px; } /* keep inner content from reflowing while the panel animates shut */
   aside .ahead{
     padding:14px 16px 10px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:8px;
   }
@@ -207,6 +210,7 @@
   <button class="btn" id="ifcVisBtn" disabled>Видимость контейнеров (IFC)</button>
   <input type="file" id="fileInput" accept=".ifc">
   <div id="status">Файл не загружен</div>
+  <button class="btn" id="sidebarToggleBtn" title="Скрыть/показать боковую панель">Скрыть панель</button>
 </header>
 
 <main>
@@ -346,6 +350,14 @@ const errtext = document.getElementById('errtext');
 
 document.getElementById('loadBtn').onclick = () => fileInput.click();
 document.getElementById('loadBtn2').onclick = () => fileInput.click();
+
+// ---------- collapsible sidebar ----------
+const asideEl = document.querySelector('aside');
+const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+sidebarToggleBtn.onclick = () => {
+  const collapsed = asideEl.classList.toggle('collapsed');
+  sidebarToggleBtn.textContent = collapsed ? 'Показать панель' : 'Скрыть панель';
+};
 document.getElementById('errCopy').onclick = () => {
   navigator.clipboard?.writeText(errtext.textContent).catch(() => {});
 };
@@ -559,7 +571,10 @@ function colorHex(hexInt) { return '#' + hexInt.toString(16).padStart(6, '0'); }
 function renderCategory(cat) {
   const members = [...containers.values()].filter(e => e.catIndex === cat.id);
   const color = cat.on ? cat.color : DEFAULT_COLOR;
-  members.forEach(entry => entry.meshes.forEach(m => m.material.color.setHex(color)));
+  members.forEach(entry => {
+    entry.meshes.forEach(m => m.material.color.setHex(color));
+    if (entry.label) entry.label.visible = labelShouldBeVisible(entry);
+  });
   if (cat.btn) {
     cat.btn.classList.toggle('on', cat.on);
     cat.cntEl.textContent = members.length + ' шт.';
@@ -705,9 +720,19 @@ cameraToggleBtn.onclick = () => {
 // ---------- container number labels: show/hide ----------
 let labelsVisible = false; // numbers stay hidden by default until the user toggles them on
 const numbersToggleBtn = document.getElementById('numbersToggleBtn');
+// a label is only ever shown if the user turned numbers on AND the container's
+// own status category is currently active (its color switched on)
+function labelShouldBeVisible(entry) {
+  if (!labelsVisible) return false;
+  const cat = CATEGORIES[entry.catIndex];
+  return !!(cat && cat.on);
+}
+function refreshAllLabelVisibility() {
+  containers.forEach(entry => { if (entry.label) entry.label.visible = labelShouldBeVisible(entry); });
+}
 function setLabelsVisible(v) {
   labelsVisible = v;
-  containers.forEach(entry => { if (entry.label) entry.label.visible = v; });
+  refreshAllLabelVisibility();
   numbersToggleBtn.textContent = v ? 'Скрыть номера контейнеров' : 'Показать номера контейнеров';
   numbersToggleBtn.classList.toggle('on', !v);
 }
@@ -1267,7 +1292,7 @@ async function loadIfc(fileOrBytes, overrideName) {
     const refSize = entry.size ? Math.max(1, Math.min(entry.size.x, entry.size.y, entry.size.z)) : undefined;
     const label = makeLabelSprite(text, refSize ? refSize * 0.8 : undefined);
     label.position.copy(entry.center);
-    label.visible = labelsVisible;
+    label.visible = labelShouldBeVisible(entry);
     entry.group.add(label);
     entry.label = label;
   });
