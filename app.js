@@ -1028,17 +1028,27 @@ const DEMO_IFC_NAME = 'площадка_в_ревит1.ifc';
   loadingMsg.textContent = 'Загрузка демо-модели…';
   loadingEl.classList.add('show');
   emptyEl.style.display = 'none';
+  let bytes;
   try {
-    const resp = await fetch(DEMO_IFC_URL, { cache: 'force-cache' });
+    // no explicit cache mode: let the browser do normal HTTP caching/revalidation,
+    // so a replaced model.ifc on the server is picked up instead of sticking forever.
+    const resp = await fetch(DEMO_IFC_URL);
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const bytes = new Uint8Array(await resp.arrayBuffer());
-    await loadIfc(bytes, DEMO_IFC_NAME);
+    bytes = new Uint8Array(await resp.arrayBuffer());
   } catch (err) {
-    // no model.ifc next to the page (e.g. running the clean viewer locally) —
-    // just fall back to the normal "choose a file" empty state, silently.
+    // genuinely couldn't fetch model.ifc (e.g. running the clean viewer locally,
+    // with no demo file next to it) — fall back to the normal "choose a file" state, silently.
     loadingEl.classList.remove('show');
     emptyEl.style.display = 'flex';
+    return;
   }
+  // model.ifc WAS found — any error from here on is a real bug in parsing/building
+  // the scene, so surface it instead of silently reverting to the empty state.
+  await loadIfc(bytes, DEMO_IFC_NAME).catch(err => {
+    loadingEl.classList.remove('show');
+    statusEl.textContent = 'Ошибка загрузки демо-модели';
+    showError(err);
+  });
 })();
 
 (function tryAutoPlayDemoVideo() {
