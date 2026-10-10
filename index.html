@@ -548,10 +548,10 @@ const DEFAULT_COLOR = 0x8fa0b5;
 const containers = new Map(); // expressID -> { meshes:[Mesh], catIndex }
 
 const CATEGORIES = [
-  { id: 0, title: 'Порожний / гружёный', color: 0x1b1f24, on: false },
-  { id: 1, title: 'Отсутствие заявки', color: 0xef4444, on: false },
-  { id: 2, title: 'Есть заявка, нет автотранспорта', color: 0xf2c23e, on: false },
-  { id: 3, title: 'Есть заявка и автотранспорт', color: 0x34d399, on: false },
+  { id: 0, title: 'Порожний / гружёный', color: 0x1b1f24, on: true },
+  { id: 1, title: 'Отсутствие заявки', color: 0xef4444, on: true },
+  { id: 2, title: 'Есть заявка, нет автотранспорта', color: 0xf2c23e, on: true },
+  { id: 3, title: 'Есть заявка и автотранспорт', color: 0x34d399, on: true },
 ];
 
 function colorHex(hexInt) { return '#' + hexInt.toString(16).padStart(6, '0'); }
