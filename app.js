@@ -183,7 +183,15 @@ let scenePaneDragging = false;
 // video is shown edge-to-edge with no cropping/letterboxing. Once the user
 // drags the divider themselves, that auto-fit is dropped in favor of whatever
 // split they chose, same as before.
-let VIDEO_ASPECT_H_OVER_W = 720 / 1280; // fallback 16:9 until the real video's own size is known
+// The exported demo-video.mp4 is a 1280x720 (16:9) file, but its actual filmed
+// content only fills a 2432x412 region in the middle, with black letterbox bars
+// padding it out to 16:9. So the pane is pinned to that content ratio (412/2432)
+// rather than the file's own 16:9 — this crops the black bars away via
+// object-fit:cover, showing the real footage edge-to-edge. TEMPORARY: once a
+// video without the letterbox bars is exported, flip FORCE_VIDEO_ASPECT below
+// back to false so the pane auto-detects whatever new ratio that file has.
+const FORCE_VIDEO_ASPECT = true;
+let VIDEO_ASPECT_H_OVER_W = FORCE_VIDEO_ASPECT ? (412 / 2432) : (720 / 1280); // fallback until the real video's own size is known
 let autoFitVideoHeight = true;
 
 function setViewportHeight(px) {
@@ -1064,10 +1072,12 @@ const DEMO_IFC_NAME = 'площадка_в_ревит1.ifc';
   video.playsInline = true;
   video.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none;';
   // read the ACTUAL dimensions of whatever video file got loaded and use that
-  // as the pane's target aspect ratio, instead of the hardcoded 16:9 fallback —
-  // so dropping in a differently-shaped demo-video.mp4 just works, no code change needed.
+  // as the pane's target aspect ratio, instead of the hardcoded fallback above —
+  // so dropping in a differently-shaped demo-video.mp4 just works, no code change
+  // needed. Skipped for now while FORCE_VIDEO_ASPECT pins the ratio to the current
+  // letterboxed file's actual content area instead of its raw (16:9) frame size.
   video.addEventListener('loadedmetadata', () => {
-    if (video.videoWidth > 0 && video.videoHeight > 0) {
+    if (!FORCE_VIDEO_ASPECT && video.videoWidth > 0 && video.videoHeight > 0) {
       VIDEO_ASPECT_H_OVER_W = video.videoHeight / video.videoWidth;
       if (autoFitVideoHeight) applyVideoAspectFit();
     }
